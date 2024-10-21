@@ -97,12 +97,20 @@ export default function Home() {
                 ctx.textBaseline = 'top';
                 ctx.fillStyle = 'black';
                 const padding = 20;
-                const maxWidth = canvas.width - 2 * padding;
+                    // Start of Selection
+                    const maxWidth: number = canvas.width - 2 * padding;
 
-                const wrapText = (context, text, x, y, maxWidth, lineHeight) => {
-                    const words = text.split(' ');
-                    let line = '';
-                    const lines = [];
+                    const wrapText = (
+                        context: CanvasRenderingContext2D,
+                        text: string,
+                        x: number,
+                        y: number,
+                        maxWidth: number,
+                        lineHeight: number
+                    ): void => {
+                        const words: string[] = text.split(' ');
+                        let line: string = '';
+                        const lines: string[] = [];
 
                     for (let i = 0; i < words.length; i++) {
                         const testLine = line + words[i] + ' ';
@@ -181,7 +189,7 @@ export default function Home() {
             try {
                 const response = await axios({
                     method: 'post',
-                    url: `${import.meta.env.VITE_API_URL}/calculate`,
+                    url: `${import.meta.env.VITE_API_URL}`,
                     data: {
                         image: canvas.toDataURL('image/png'),
                         dict_of_vars: dictOfVars
@@ -297,7 +305,7 @@ export default function Home() {
                 <Draggable
                     key={index}
                     defaultPosition={latexPosition}
-                    onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
+                    onStop={(_, data) => setLatexPosition({ x: data.x, y: data.y })}
                 >
                     <div className="absolute p-4 text-white bg-gray-800 bg-opacity-75 rounded shadow-md transition-transform transform hover:scale-105">
                         <div className="latex-content">{latex}</div>
