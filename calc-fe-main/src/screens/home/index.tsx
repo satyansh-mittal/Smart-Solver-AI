@@ -1,10 +1,10 @@
-import { ColorSwatch, Group, Loader, Notification } from '@mantine/core';
+import { ColorSwatch, Group, Loader, Notification, Slider } from '@mantine/core'; // Added Slider import
 import { Button } from '@/components/ui/button';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import Draggable from 'react-draggable';
 import { SWATCHES } from '@/constants';
-import { RefreshCw, Play } from 'lucide-react'; // Updated icon imports
+import { RefreshCw, Play, Eraser } from 'lucide-react'; // Added Eraser icon
 
 interface GeneratedResult {
     expression: string;
@@ -28,6 +28,10 @@ export default function Home() {
     const [latexExpression, setLatexExpression] = useState<Array<string>>([]);
     const [isLoading, setIsLoading] = useState(false); // Loading state
     const [notification, setNotification] = useState<{ type: string; message: string } | null>(null); // Notification state
+    
+    // New state variables
+    const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
+    const [brushWidth, setBrushWidth] = useState(3);
 
     useEffect(() => {
         if (latexExpression.length > 0 && window.MathJax) {
@@ -62,7 +66,9 @@ export default function Home() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight - canvas.offsetTop;
                 ctx.lineCap = 'round';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = brushWidth; // Initial brush width
+                ctx.strokeStyle = color; // Initial stroke style
+                ctx.globalCompositeOperation = 'source-over'; // Initial composite operation
             }
         }
         const script = document.createElement('script');
@@ -79,7 +85,7 @@ export default function Home() {
         return () => {
             document.head.removeChild(script);
         };
-    }, []);
+    }, []); // Run once on mount
 
     const renderLatexToCanvas = (expression: string, answer: string) => {
         const fullText = `${expression} = ${answer}`;
@@ -170,7 +176,14 @@ export default function Home() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.strokeStyle = color;
+                ctx.lineWidth = brushWidth; // Set brush width
+                if (tool === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out'; // Set eraser mode
+                    ctx.strokeStyle = 'rgba(0,0,0,1)';
+                } else {
+                    ctx.globalCompositeOperation = 'source-over'; // Set pencil mode
+                    ctx.strokeStyle = color;
+                }
                 ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
                 ctx.stroke();
             }
@@ -181,6 +194,17 @@ export default function Home() {
         setIsDrawing(false);
     };  
 
+    // Handler to select tool
+    const selectTool = (selectedTool: 'pencil' | 'eraser') => {
+        setTool(selectedTool);
+    };
+
+    // Handler for color selection
+    const handleColorSelect = (selectedColor: string) => {
+        setColor(selectedColor);
+        setTool('pencil'); // Switch to pencil when a color is selected
+    };
+
     const runRoute = async () => {
         const canvas = canvasRef.current;
     
@@ -189,7 +213,7 @@ export default function Home() {
             try {
                 const response = await axios({
                     method: 'post',
-                    url: `${import.meta.env.VITE_API_URL}`,
+                    url: `${import.meta.env.VITE_API_URL}/calculate`,
                     data: {
                         image: canvas.toDataURL('image/png'),
                         dict_of_vars: dictOfVars
@@ -259,42 +283,67 @@ export default function Home() {
                     {notification.message}
                 </Notification>
             )}
-            <div className='grid grid-cols-3 gap-4 p-4'>
-                <Button
-                    onClick={() => setReset(true)}
-                    className='z-20 bg-black text-white flex items-center justify-center gap-2 hover:bg-gray-700 transition'
-                    variant='default' 
-                    color='black'
-                    aria-label='Reset Canvas'
-                    disabled={isLoading} // Disable during loading
-                >
-                    <RefreshCw /> Reset
-                </Button>
-                <Group className='z-20'>
-                    {SWATCHES.map((swatch) => (
-                        <ColorSwatch 
-                            key={swatch} 
-                            color={swatch} 
-                            onClick={() => setColor(swatch)} 
-                            style={{ cursor: 'pointer' }}
+            <div className='controls-container'>
+                <div className='grid grid-cols-3 gap-1 p-1'> {/* Further reduced gap and padding */}
+                    <Button
+                        onClick={() => setReset(true)}
+                        className='z-20 bg-black text-white flex items-center justify-center gap-1 px-2 py-1 hover:bg-gray-700 transition text-sm' // Reduced padding and font size
+                        variant='default' 
+                        color='black'
+                        aria-label='Reset Canvas'
+                        disabled={isLoading} // Disable during loading
+                    >
+                        <RefreshCw size={16} /> Reset {/* Reduced icon size */}
+                    </Button>
+                    <Group className='z-20'>
+                        {SWATCHES.map((swatch) => (
+                            <ColorSwatch 
+                                key={swatch} 
+                                color={swatch} 
+                                onClick={() => handleColorSelect(swatch)} 
+                                style={{ cursor: 'pointer', width: '24px', height: '24px' }} // Smaller swatch size
+                            />
+                        ))}
+                    </Group>
+                    <Button
+                        onClick={runRoute}
+                        className='z-20 bg-green-500 text-white flex items-center justify-center gap-1 px-2 py-1 hover:bg-green-600 transition text-sm' // Reduced padding and font size
+                        variant='default'
+                        color='white'
+                        aria-label='Run Calculation'
+                        disabled={isLoading} // Disable during loading
+                    >
+                        {isLoading ? <Loader size="sm" /> : <Play size={16} />} Run {/* Reduced icon size */}
+                    </Button>
+                </div>
+                <div className='additional-controls p-1 flex items-center gap-1'> {/* Further reduced padding and gap */}
+                    <Button
+                        onClick={() => selectTool('eraser')}
+                        className={`z-20 flex items-center justify-center gap-1 hover:bg-gray-700 transition ${tool === 'eraser' ? 'bg-gray-700' : 'bg-black'} px-2 py-1 text-sm`} // Reduced padding and font size
+                        variant='default'
+                        color='black'
+                        aria-label='Eraser'
+                        disabled={isLoading}
+                    >
+                        <Eraser size={16} /> Eraser {/* Reduced icon size */}
+                    </Button><br></br>
+                    <div className='w-24'> {/* Further reduced width */}
+                        <label htmlFor="brushWidth" className="block text-xs font-medium text-white">Brush</label> {/* Changed text color to white */}
+                        <Slider
+                            id="brushWidth"
+                            min={1}
+                            max={20}
+                            value={brushWidth}
+                            onChange={setBrushWidth}
+                            disabled={isLoading}
                         />
-                    ))}
-                </Group>
-                <Button
-                    onClick={runRoute}
-                    className='z-20 bg-green-500 text-white flex items-center justify-center gap-2 hover:bg-green-600 transition'
-                    variant='default'
-                    color='white'
-                    aria-label='Run Calculation'
-                    disabled={isLoading} // Disable during loading
-                >
-                    {isLoading ? <Loader size="sm" /> : <Play />} Run
-                </Button>
+                    </div>
+                </div>
             </div>
             <canvas
                 ref={canvasRef}
                 id='canvas'
-                className='absolute top-0 left-0 w-full h-full'
+                className='canvas-area'
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}

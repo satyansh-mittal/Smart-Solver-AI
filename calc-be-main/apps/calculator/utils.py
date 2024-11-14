@@ -1,31 +1,3 @@
-# import torch
-# from transformers import pipeline, BitsAndBytesConfig, AutoProcessor, LlavaForConditionalGeneration
-# from PIL import Image
-
-# # quantization_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
-# quantization_config = BitsAndBytesConfig(
-#     load_in_4bit=True,
-#     bnb_4bit_compute_dtype=torch.float16
-# )
-
-
-# model_id = "llava-hf/llava-1.5-7b-hf"
-# processor = AutoProcessor.from_pretrained(model_id)
-# model = LlavaForConditionalGeneration.from_pretrained(model_id, quantization_config=quantization_config, device_map="auto")
-# # pipe = pipeline("image-to-text", model=model_id, model_kwargs={"quantization_config": quantization_config})
-
-# def analyze_image(image: Image):
-#     prompt = "USER: <image>\nAnalyze the equation or expression in this image, and return answer in format: {expr: given equation in LaTeX format, result: calculated answer}"
-
-#     inputs = processor(prompt, images=[image], padding=True, return_tensors="pt").to("cuda")
-#     for k, v in inputs.items():
-#         print(k,v.shape)
-
-#     output = model.generate(**inputs, max_new_tokens=20)
-#     generated_text = processor.batch_decode(output, skip_special_tokens=True)
-#     for text in generated_text:
-#         print(text.split("ASSISTANT:")[-1])
-
 import google.generativeai as genai
 import ast
 import json
@@ -48,27 +20,44 @@ def analyze_image(img: Image, dict_of_vars: dict):
         f"Steps: 3 * 4 = 12, 2 + 12 = 14.\n"
         f"Q2. 2 + 3 + 5 * 4 - 8 / 2\n"
         f"Steps: 5 * 4 = 20, 8 / 2 = 4, 2 + 3 = 5, 5 + 20 = 25, 25 - 4 = 21.\n"
+        f"Q3. Solve for x: 2x + 3 = 7\n"
+        f"Steps: 2x = 7 - 3, 2x = 4, x = 2.\n"
+        f"Q4. Simplify (a^2 - b^2)/(a - b)\n"
+        f"Steps: Factor numerator: (a + b)(a - b)/(a - b), Simplify: a + b.\n"
+        f"Q5. Calculate the derivative of y = x^2\n"
+        f"Steps: y' = 2x.\n"
+        f"Q6. Integrate f(x) = e^x\n"
+        f"Steps: ∫e^x dx = e^x + C.\n"
         f"\n"
-        f"There are five types of equations or expressions that may appear in the image. Only one case will apply each time:\n"
-        f"1. **Simple Mathematical Expressions** (e.g., 2 + 2, 3 * 4, 5 / 6, 7 - 8):\n"
-        f"   - Solve and return the answer as a list containing one dictionary: [{{'expr': 'given expression', 'result': 'calculated answer'}}].\n"
-        f"2. **Systems of Equations** (e.g., x^2 + 2x + 1 = 0, 3y + 4x = 0, 5x^2 + 6y + 7 = 12):\n"
-        f"   - Solve for the given variables and return a comma-separated list of dictionaries, one for each variable. Each dictionary should follow the format: {{'expr': 'variable', 'result': 'value', 'assign': True}}.\n"
-        f"   - **Example:** [{{'expr': 'x', 'result': 2, 'assign': True}}, {{'expr': 'y', 'result': 5, 'assign': True}}].\n"
-        f"3. **Variable Assignments** (e.g., x = 4, y = 5, z = 6):\n"
-        f"   - Assign values to variables and return them as a list of dictionaries with an additional key 'assign': True.\n"
-        f"   - **Format:** [{{'expr': 'variable', 'result': 'value', 'assign': True}}, ...]\n"
-        f"4. **Graphical Math Problems** (e.g., word problems illustrated with drawings, such as cars colliding, trigonometric problems, Pythagorean theorem, etc.):\n"
-        f"   - Analyze the drawing and accompanying information. Pay close attention to different colors used in the problem description.\n"
-        f"   - Return the answer as a list containing one dictionary: [{{'expr': 'given expression', 'result': 'calculated answer'}}].\n"
-        f"5. **Abstract Concepts** (e.g., emotions like love, hate, jealousy; historic references to war, invention, discovery, quotes, etc.):\n"
+        f"There are several types of equations or expressions that may appear in the image. Only one case will apply each time:\n"
+        f"1. **Simple Mathematical Expressions and Inequalities** (e.g., 2 + 2, 3 * 4, 5 / 6, 7 - 8, 5 > 3, x <= 10):\n"
+        f"   - Solve or simplify and return the answer as a list containing one dictionary: [{{'expr': 'given expression', 'result': 'calculated answer'}}].\n"
+        f"2. **Equations with One Variable** (e.g., x^2 + 2x + 1 = 0):\n"
+        f"   - Solve for the variable and return a dictionary: {{'expr': 'variable', 'result': 'value', 'assign': True}}.\n"
+        f"3. **Systems of Equations** (e.g., 3y + 4x = 0, 5x^2 + 6y + 7 = 12):\n"
+        f"   - Solve for the given variables and return a list of dictionaries, one for each variable.\n"
+        f"4. **Calculus Problems** (e.g., derivatives, integrals):\n"
+        f"   - Solve and return the answer in the appropriate mathematical form as a dictionary.\n"
+        f"5. **Variable Assignments** (e.g., x = 4, y = 5, z = 6):\n"
+        f"   - Assign values to variables and return them as a list of dictionaries with 'assign': True.\n"
+        f"6. **Graphical Math Problems** (e.g., word problems illustrated with drawings):\n"
+        f"   - Analyze the drawing and accompanying information.\n"
+        f"   - Return the answer as a dictionary: {{'expr': 'given expression', 'result': 'calculated answer'}}.\n"
+        f"7. **Abstract Concepts** (e.g., emotions, historic references):\n"
         f"   - Detect and explain the abstract concept presented in the drawing.\n"
-        f"   - Return the answer as a list containing one dictionary with 'expr' being the explanation and 'result' being the abstract concept: [{{'expr': 'explanation', 'result': 'abstract concept'}}].\n"
+        f"   - Return the answer as a dictionary with 'expr' being the explanation and 'result' being the abstract concept.\n"
+        f"8. **Inequalities and Absolute Values** (e.g., |x - 3| < 5):\n"
+        f"   - Solve and return the solution set.\n"
+        f"9. **Complex Numbers** (e.g., Solve z^2 + 1 = 0):\n"
+        f"   - Handle complex solutions if necessary.\n"
+        f"10. **Matrices and Determinants** (e.g., compute the determinant of a matrix):\n"
+        f"    - Perform the calculation and return the result.\n"
         f"\n"
         f"**Formatting Rules:**\n"
-        f"- Use extra backslashes for escape characters like \\f -> \\\\f, \\n -> \\\\n, etc.\n"
-        f"- DO NOT use backticks or Markdown formatting.\n"
-        f"- Properly quote the keys and values in the dictionary for easier parsing with Python's ast.literal_eval.\n"
+        f"- Return the answer as a list of dictionaries, following the format: [{{'expr': '...', 'result': '...'}}].\n"
+        f"- Include an 'assign' key with value True if a variable assignment is made.\n"
+        f"- Use proper mathematical notation.\n"
+        f"- Avoid any markdown or formatting that is not plain text.\n"
         f"\n"
         f"Here is a dictionary of user-assigned variables. If the given expression contains any of these variables, substitute their values accordingly: {dict_of_vars_str}.\n"
         f"\n"

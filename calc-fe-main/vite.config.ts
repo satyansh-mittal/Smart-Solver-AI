@@ -1,4 +1,3 @@
- // Start of Selection
 import path from "path"
 import react from "@vitejs/plugin-react"
 // @ts-ignore

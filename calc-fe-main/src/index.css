@@ -65,5 +65,54 @@
   }
   body {
     @apply bg-background text-foreground;
+    margin: 0; /* Ensure no default margin */
+    padding-top: 60px; /* Further reduced space for fixed controls */
+  }
+
+  .controls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem; /* Further reduced gap */
+    padding: 0.25rem; /* Further reduced padding */
+    background-color: rgba(0, 0, 0, 0.7); /* Increased opacity for better visibility */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for separation */
+  }
+
+  .additional-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem; /* Further reduced gap */
+  }
+
+  .latex-content {
+    cursor: move; /* Ensure LaTeX is draggable */
+    user-select: none;
+  }
+
+  .canvas-area {
+    /* Ensure the canvas fills the remaining viewport height */
+    position: absolute;
+    top: 60px; /* Match the padding-top in body */
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 60px); /* Adjust based on controls height */
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .controls-container {
+      flex-direction: column;
+      padding: 0.1rem; /* Further reduced padding */
+    }
+
+    .canvas-area {
+      top: 50px;
+      height: calc(100vh - 50px);
+    }
   }
 }
