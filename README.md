@@ -1,6 +1,6 @@
 # Smart-Solver-AI
 
-[Deployed Demo](https://smart-solver.vercel.app/](https://smart-solver-frontend.vercel.app/)
+[Deployed Demo]([https://smart-solver.vercel.app/](https://smart-solver-frontend.vercel.app/])
 
 A LLM based canvas problem solver.
 
